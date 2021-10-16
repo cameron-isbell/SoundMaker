@@ -44,9 +44,10 @@ def handle_queue():
 
     audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
 
+#A thread running to check the queue whenever audio is done playing
 def check_queue():
     while True:
-        while (not audio is None and audio.is_playing()):
+        while (not audio is None and (audio.is_playing() or audio.is_paused())):
             time.sleep(1)
         if queue.__len__() > 0:
             handle_queue()
@@ -87,6 +88,7 @@ async def play(ctx, *args):
         await ctx.send('Invalid url.')
         return
 
+    #download the data used to play the song
     try:
         ydl_info = youtube_dl.YoutubeDL({'format':'bestaudio/best', 'noplaylist':'True'})
         with ydl_info:
@@ -97,6 +99,45 @@ async def play(ctx, *args):
 
     queue.append((info,ctx))
 
+#Remove an item at a specific point in the queue
+@bot.command(name='remove', aliases=['rm'])
+async def remove(ctx, *args):
+    temp = args[0]
+    idx = int(temp)
+
+    if idx == 0:
+        await ctx.send('Cannot remove item at index 0. Use skip instead.')
+        return
+
+    if idx-1 >= queue.__len__():
+        await ctx.send('No item in the queue at index ' + args[0])
+        return
+
+    removed = queue.pop(idx-1)
+    await ctx.send('Successfully removed item.')
+
+#pause the music
+@bot.command(name='pause')
+async def pause(ctx):
+    if audio is None or not audio.is_playing():
+        await ctx.send('No audio playing.')
+        return
+
+    audio.pause()
+
+#If audio is paused, resume
+@bot.command(name='resume')
+async def resume(ctx):
+    if audio is None:
+        await ctx.send('No audio playing.')
+        return
+    elif not audio.is_paused():
+        await ctx.send('Audio is not paused.')
+        return 
+
+    audio.resume()    
+
+#force bot to leave the server
 @bot.command(name='leave')
 async def leave(ctx):
     #if bot is in a channel
@@ -110,4 +151,7 @@ async def skip(ctx):
     if not audio is None and (audio.is_playing() or audio.is_paused):
         audio.stop()
 
-bot.run(os.getenv('TOKEN'))
+def start_bot():
+    bot.run(os.getenv('TOKEN'))
+
+start_bot()
