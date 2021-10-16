@@ -4,15 +4,19 @@ import os
 import subprocess
 import requests
 import youtube_dl
+import threading
+import time
 from dotenv import load_dotenv
 from discord.ext.commands import Bot
 
 load_dotenv()
 bot = Bot(command_prefix='>')
 
+lock_queue = False
 queue = []
 audio : discord.VoiceClient = None
 
+#HANDLE OPUS FOR ME
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 def load_opus(opus_libs=OPUS_LIBS):
     if opus.is_loaded():
@@ -27,18 +31,36 @@ def load_opus(opus_libs=OPUS_LIBS):
 
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
+#plays one song from the top of the queue
+def handle_queue():
+    global audio
+    data = queue.pop(0)
+    info = data[0]
+    ctx = data[1]
+
+    #extract info from the url, also checks if the url is valid on youtube
+    FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+    audio = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+
+    audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
+
+def check_queue():
+    while True:
+        while (not audio is None and audio.is_playing()):
+            time.sleep(1)
+        if queue.__len__() > 0:
+            handle_queue()
+
+#send a message to the console when the bot is ready
 @bot.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(bot))
-
-def on_done_playing(arg):
-    print('x')
+    print('We have logged in as {0.user}'.format(bot))    
+    t = threading.Thread(target=check_queue)
+    t.start()
 
 @bot.command(name='play', aliases=['p'])
 async def play(ctx, *args):
-    global audio
     global queue
-
     #connect the bot to the vc if possible
     try:
         if (not ctx.voice_client):
@@ -65,7 +87,6 @@ async def play(ctx, *args):
         await ctx.send('Invalid url.')
         return
 
-    #extract info from the url, also checks if the url is valid on youtube
     try:
         ydl_info = youtube_dl.YoutubeDL({'format':'bestaudio/best', 'noplaylist':'True'})
         with ydl_info:
@@ -74,10 +95,7 @@ async def play(ctx, *args):
         await ctx.send('Unsupported URL')
         return
 
-    FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    audio = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-
-    audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS), after=on_done_playing)
+    queue.append((info,ctx))
 
 @bot.command(name='leave')
 async def leave(ctx):
@@ -89,11 +107,7 @@ async def leave(ctx):
 
 @bot.command(name='skip',aliases=['s'])
 async def skip(ctx):
-    try:
-        if (audio.is_playing()):
-            audio.stop()
-    #just in case audio is never set
-    except AttributeError:
-        await ctx.send('No audio playing')
+    if not audio is None and (audio.is_playing() or audio.is_paused):
+        audio.stop()
 
 bot.run(os.getenv('TOKEN'))
