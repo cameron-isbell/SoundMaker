@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import discord
 import os
-import subprocess
 import requests
 import youtube_dl
 import threading
@@ -12,9 +11,8 @@ from discord.ext.commands import Bot
 load_dotenv()
 bot = Bot(command_prefix='>')
 
-lock_queue = False
 queue = []
-audio : discord.VoiceClient = None
+audio = None
 
 #HANDLE OPUS FOR ME
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
@@ -104,8 +102,7 @@ async def play(ctx, *args):
 #Remove an item at a specific point in the queue
 @bot.command(name='remove', aliases=['rm'])
 async def remove(ctx, *args):
-    temp = args[0]
-    idx = int(temp)
+    idx = int(args[0])
 
     if idx == 0:
         await ctx.send('Cannot remove item at index 0. Use skip instead.')
@@ -143,11 +140,11 @@ async def resume(ctx):
 #force bot to leave the server
 @bot.command(name='leave')
 async def leave(ctx):
-    #if bot is in a channel
-    if (ctx.voice_client):
-        await ctx.guild.voice_client.disconnect()
-    else:
-        await ctx.send('Not in a vc.')
+    if not ctx.voice_client:
+        await ctx.send('Not in a voice channel')
+        return
+
+    await ctx.guild.voice_client.disconnect()
 
 @bot.command(name='skip',aliases=['s'])
 async def skip(ctx):
@@ -179,6 +176,7 @@ async def help(ctx):
 
     await ctx.send(msg)
 
+#TODO: add a thread to run the bot on. then, have main check for command line input to end the program
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
