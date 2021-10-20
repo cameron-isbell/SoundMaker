@@ -44,6 +44,10 @@ def handle_queue():
 
     audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
 
+    #TODO: TEST ME
+    msg = 'Now playing {}'.format(info['title'])
+    ctx.send(msg)
+
 #A thread running to check the queue whenever audio is done playing
 def check_queue():
     while True:
@@ -72,11 +76,9 @@ async def play(ctx, *args):
         await ctx.send('User is not in a voice channel.')
         return
     
-    #check if we've received a url
-    try:
-        url = args[0]
-    except IndexError:
-        await ctx.send('No song given.')
+    #TODO: TEST ME
+    if args is None:
+        await ctx.send('No link given.')
         return
     
     #check that the url is valid
@@ -109,6 +111,7 @@ async def remove(ctx, *args):
         await ctx.send('Cannot remove item at index 0. Use skip instead.')
         return
 
+    #idx-1 since the item currently playing has been already popped from the queue
     if idx-1 >= queue.__len__():
         await ctx.send('No item in the queue at index ' + args[0])
         return
@@ -135,7 +138,7 @@ async def resume(ctx):
         await ctx.send('Audio is not paused.')
         return 
 
-    audio.resume()    
+    audio.resume()
 
 #force bot to leave the server
 @bot.command(name='leave')
@@ -150,6 +153,31 @@ async def leave(ctx):
 async def skip(ctx):
     if not audio is None and (audio.is_playing() or audio.is_paused):
         audio.stop()
+
+#TODO: TEST ME
+@bot.command(name='clear')
+async def clear():
+    queue.clear()
+    await ctx.send('queue successfully cleared')
+
+#TODO: TEST ME
+@bot.command(name='help')
+async def help(ctx):
+    cmd_descriptions = {
+        '>help: prints this message',
+        '>play: plays a song from a given youtube link',
+        '>skip: if a song is playing, move onto the next song in the queue or, if the queue is empty, ends the currently playing song',
+        '>pause: pauses a song',
+        '>resume: if the song is paused, resume it',
+        '>leave: make SoundMaker leave the voice channel it is in',
+        '>remove: remove a song from the queue at the given index',
+        '>clear: remove all items in the queue'
+    }
+
+    for disc in cmd_descriptions:
+        msg += disc + '\n'
+
+    await ctx.send(msg)
 
 def start_bot():
     bot.run(os.getenv('TOKEN'))
