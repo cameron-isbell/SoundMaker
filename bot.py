@@ -42,10 +42,6 @@ def handle_queue():
 
     audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
 
-    #TODO: TEST ME
-    msg = 'Now playing {}'.format(info['title'])
-    ctx.send(msg)
-
 #A thread running to check the queue whenever audio is done playing
 def check_queue():
     while True:
@@ -74,11 +70,13 @@ async def play(ctx, *args):
         await ctx.send('User is not in a voice channel.')
         return
     
-    #TODO: TEST ME
-    if args is None:
+    try:
+        url = args[0]
+    except IndexError:
         await ctx.send('No link given.')
-        return
+        return        
     
+    url = args[0]
     #check that the url is valid
     try:
         if (requests.get(url).status_code != 200):
@@ -99,6 +97,18 @@ async def play(ctx, *args):
 
     queue.append((info,ctx))
 
+    embed = discord.Embed(
+        title=info['title'],
+            url = info['url'],
+            description=info['description'],
+            color=discord.Color.blue())
+
+    embed.set_author(name=info['uploader'])
+    embed.set_thumbnail(url=info['thumbnail'])
+    embed.set_footer(text='Song is added to the queue.')
+
+    await ctx.send(embed=embed)
+
 #Remove an item at a specific point in the queue
 @bot.command(name='remove', aliases=['rm'])
 async def remove(ctx, *args):
@@ -110,11 +120,11 @@ async def remove(ctx, *args):
 
     #idx-1 since the item currently playing has been already popped from the queue
     if idx-1 >= queue.__len__():
-        await ctx.send('No item in the queue at index ' + args[0])
+        await ctx.send('No item in the queue at index %s' % args[0])
         return
 
     removed = queue.pop(idx-1)
-    await ctx.send('Successfully removed item.')
+    await ctx.send('Successfully removed item %s at index %s.' % (removed[0]['title'], args[0]))
 
 #pause the music
 @bot.command(name='pause')
@@ -125,14 +135,14 @@ async def pause(ctx):
 
     audio.pause()
 
-#If audio is paused, resume
+#Resume audio if it's paused
 @bot.command(name='resume')
 async def resume(ctx):
     if audio is None:
-        await ctx.send('No audio playing.')
+        await ctx.send('no audio playing.')
         return
     elif not audio.is_paused():
-        await ctx.send('Audio is not paused.')
+        await ctx.send('audio is not paused.')
         return 
 
     audio.resume()
@@ -141,38 +151,51 @@ async def resume(ctx):
 @bot.command(name='leave')
 async def leave(ctx):
     if not ctx.voice_client:
-        await ctx.send('Not in a voice channel')
+        await ctx.send('not in a voice channel')
         return
 
     await ctx.guild.voice_client.disconnect()
 
-@bot.command(name='skip',aliases=['s'])
+@bot.command(name='skip', aliases=['s'])
 async def skip(ctx):
-    if not audio is None and (audio.is_playing() or audio.is_paused):
+    if not audio is None and (audio.is_playing() or audio.is_paused()):
         audio.stop()
 
-#TODO: TEST ME
 @bot.command(name='clear')
-async def clear():
+async def clear(ctx):
     queue.clear()
-    await ctx.send('queue successfully cleared')
+    await ctx.send('Queue successfully cleared!')
 
-#TODO: TEST ME
-@bot.command(name='help')
-async def help(ctx):
-    cmd_descriptions = {
-        '>help: prints this message',
+@bot.command(name='queue')
+async def queue_cmd(ctx):
+    msg = '`'
+    for i in range(0, queue.__len__()):
+        msg += str(i) + '. ' + queue[i][0]['title'] + '\n'
+    msg += '`'
+    
+    if queue.__len__() == 0:
+        msg = '`Empty`'
+
+    await ctx.send(msg)
+
+@bot.command(name='commands')
+async def commands(ctx):
+    cmd_descriptions = [
+        '>commands: prints this message',
         '>play: plays a song from a given youtube link',
         '>skip: if a song is playing, move onto the next song in the queue or, if the queue is empty, ends the currently playing song',
         '>pause: pauses a song',
         '>resume: if the song is paused, resume it',
         '>leave: make SoundMaker leave the voice channel it is in',
         '>remove: remove a song from the queue at the given index',
-        '>clear: remove all items in the queue'
-    }
+        '>clear: remove all items in the queue',
+        '>queue: show all items in the queue'
+    ]
 
+    msg = '`'
     for disc in cmd_descriptions:
         msg += disc + '\n'
+    msg += '`'
 
     await ctx.send(msg)
 
