@@ -156,6 +156,9 @@ async def leave(ctx):
         await ctx.send('not in a voice channel')
         return
 
+    if not audio is None:
+        audio.stop()
+        
     await ctx.guild.voice_client.disconnect()
 
 @bot.command(name='skip', aliases=['s'])
