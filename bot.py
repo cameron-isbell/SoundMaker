@@ -13,8 +13,9 @@ bot = Bot(command_prefix='>')
 
 queue = []
 audio = None
+stop = False
 
-#HANDLE OPUS FOR ME
+#TODO: MAKE SURE OPUS IS ACUTALLY NECESSARY
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 def load_opus(opus_libs=OPUS_LIBS):
     if opus.is_loaded():
@@ -44,7 +45,8 @@ def handle_queue():
 
 #A thread running to check the queue whenever audio is done playing
 def check_queue():
-    while True:
+    global stop
+    while not stop:
         while (not audio is None and (audio.is_playing() or audio.is_paused())):
             time.sleep(1)
         if queue.__len__() > 0:
@@ -192,15 +194,23 @@ async def commands(ctx):
         '>queue: show all items in the queue'
     ]
 
-    msg = '`'
+    msg = '`\n'
     for disc in cmd_descriptions:
         msg += disc + '\n'
-    msg += '`'
+    msg += '\n`'
 
     await ctx.send(msg)
 
-#TODO: add a thread to run the bot on. then, have main check for command line input to end the program
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
-start_bot()
+bot_thread = threading.Thread(target=start_bot)
+queue_thread = threading.Thread(target=check_queue)
+
+while True:
+    usr_cmd = input()
+    if usr_cmd == 'END' or stop:
+        stop = True
+        bot_thread.join()
+        queue_thread.join()
+        exit()
