@@ -1,3 +1,8 @@
+#Author: cameron-isbell
+#Date: 9/14/2021
+
+#A discord bot used to play audio with command prefix '>'
+
 from __future__ import unicode_literals
 import discord
 import os
@@ -13,8 +18,15 @@ bot = Bot(command_prefix='>')
 
 #TODO: MAKE THE QUEUE A DICTIONARY WITH EACH GUILD AS A KEY.
 # CURRENTLY, THE BOT IS SHARING A QUEUE FOR ALL GUILDS
-queue = []
-audio = None
+
+#a dicionary of queues. one for each guild that the bot is playing in
+queue_dict = {}
+
+#a dictionary for each thread associated with each guild
+thrd_dict = {}
+
+#a dictionary the audio for each guild. 
+audio_dict = {}
 stop = False
 
 #TODO: MAKE SURE OPUS IS ACUTALLY NECESSARY
@@ -32,39 +44,35 @@ def load_opus(opus_libs=OPUS_LIBS):
 
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
-#plays one song from the top of the queue
-def handle_queue():
-    global audio
-    data = queue.pop(0)
-    info = data[0]
-    ctx = data[1]
-
-    #extract info from the url, also checks if the url is valid on youtube
-    FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    audio = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-
-    audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
-
 #A thread running to check the queue whenever audio is done playing
-def check_queue():
+def check_queue(guild):
     global stop
+    global audio_dict
+
+    audio = audio_dict[guild.id]
     while not stop:
         while (not audio is None and (audio.is_playing() or audio.is_paused()) and not stop):
             time.sleep(1)
-            
-        if queue.__len__() > 0:
-            handle_queue()
+        
+        if queue_dict[guild.id].__len__() > 0:
+            info = queue_dict[guild.id].pop(0)
+
+            #extract info from the url, also checks if the url is valid on youtube
+            FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            audio_dict[guild.id] = discord.utils.get(bot.voice_clients, guild=guild)
+            audio_dict[guild.id].play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
+
 
 #send a message to the console when the bot is ready
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))    
-    t = threading.Thread(target=check_queue)
-    t.start()
 
+#Adds a song, if valid, to the queue to be played
 @bot.command(name='play', aliases=['p'])
 async def play(ctx, *args):
     global queue
+    await ctx.send('Processing Request...')
     #connect the bot to the vc if possible
     try:
         if (not ctx.voice_client):
@@ -75,6 +83,7 @@ async def play(ctx, *args):
         await ctx.send('User is not in a voice channel.')
         return
     
+    #TODO: less lazy solution
     try:
         url = args[0]
     except IndexError:
@@ -100,7 +109,23 @@ async def play(ctx, *args):
         await ctx.send('Unsupported URL %s' % url)
         return
 
-    queue.append((info,ctx))
+    #Just in case the guild is None for some reason
+    if ctx.guild is None:
+        await ctx.send('Fatal Error: ctx.guild = None. Song could not be played.')
+        return 
+
+    if not ctx.guild.id in queue_dict.keys():
+        queue_dict[ctx.guild.id] = []
+
+    if not ctx.guild.id in audio_dict.keys():
+        audio_dict[ctx.guild.id] = None
+
+    #create a new thread for each guild
+    if not ctx.guild.id in thrd_dict.keys():
+        thrd_dict[ctx.guild.id] = threading.Thread(target=check_queue, args=(ctx.guild,))
+        thrd_dict[ctx.guild.id].start()
+
+    queue_dict[ctx.guild.id].append(info)
 
     embed = discord.Embed(
         title=info['title'],
@@ -115,25 +140,26 @@ async def play(ctx, *args):
     await ctx.send(embed=embed)
 
 #Remove an item at a specific point in the queue
-@bot.command(name='remove', aliases=['rm'])
-async def remove(ctx, *args):
-    idx = int(args[0])
+# @bot.command(name='remove', aliases=['rm'])
+# async def remove(ctx, *args):
+#     idx = int(args[0])
 
-    if idx == 0:
-        await ctx.send('Cannot remove item at index 0. Use skip instead.')
-        return
+#     if idx == 0:
+#         await ctx.send('Cannot remove item at index 0. Use skip instead.')
+#         return
 
-    #idx-1 since the item currently playing has been already popped from the queue
-    if idx-1 >= queue.__len__():
-        await ctx.send('No item in the queue at index %s' % args[0])
-        return
+#     #idx-1 since the item currently playing has been already popped from the queue
+#     if idx-1 >= queue.__len__():
+#         await ctx.send('No item in the queue at index %s' % args[0])
+#         return
 
-    removed = queue.pop(idx-1)
-    await ctx.send('Successfully removed item %s at index %s.' % (removed[0]['title'], args[0]))
+#     removed = queue.pop(idx-1)
+#     await ctx.send('Successfully removed item %s at index %s.' % (removed[0]['title'], args[0]))
 
 #pause the music
 @bot.command(name='pause')
 async def pause(ctx):
+    audio = audio_dict[ctx.guild.id]
     if audio is None or not audio.is_playing():
         await ctx.send('No audio playing.')
         return
@@ -143,6 +169,7 @@ async def pause(ctx):
 #Resume audio if it's paused
 @bot.command(name='resume')
 async def resume(ctx):
+    audio = audio_dict[ctx.guild.id]
     if audio is None:
         await ctx.send('no audio playing.')
         return
@@ -152,9 +179,10 @@ async def resume(ctx):
 
     audio.resume()
 
-#force bot to leave the server
+#force bot to leave the voice channel
 @bot.command(name='leave')
 async def leave(ctx):
+    audio = audio_dict[ctx.guild.id]
     if not ctx.voice_client:
         await ctx.send('not in a voice channel')
         return
@@ -164,21 +192,24 @@ async def leave(ctx):
         
     await ctx.guild.voice_client.disconnect()
 
+#skip to the next song in the playlist by stopping the current audio
 @bot.command(name='skip', aliases=['s'])
 async def skip(ctx):
+    audio = audio_dict[ctx.guild.id]
     if not audio is None and (audio.is_playing() or audio.is_paused()):
         audio.stop()
 
 @bot.command(name='clear')
 async def clear(ctx):
-    queue.clear()
+    queue_dict[ctx.guild.id].clear()
     await ctx.send('Queue successfully cleared!')
 
 @bot.command(name='queue')
 async def queue_cmd(ctx):
+    queue = queue_dict[ctx.guild.id]
     msg = '```'
     for i in range(0, queue.__len__()):
-        msg += str(i) + '. ' + queue[i][0]['title'] + '\n'
+        msg += str(i) + '. ' + queue[i]['title'] + '\n'
     msg += '```'
     
     if queue.__len__() == 0:
@@ -211,14 +242,13 @@ def start_bot():
     bot.run(os.getenv('TOKEN'))
 
 bot_thread = threading.Thread(target=start_bot, daemon=True)
-queue_thread = threading.Thread(target=check_queue)
-
 bot_thread.start()
-queue_thread.start()
 
+#Check for user input. END is used to kill the bot
 while True:
     usr_cmd = input()
     if usr_cmd == 'END' or stop:
         stop = True
-        queue_thread.join()
+        for t in thrd_dict.items():
+            t[1].join()
         exit()
