@@ -49,8 +49,9 @@ def handle_queue():
 def check_queue():
     global stop
     while not stop:
-        while (not audio is None and (audio.is_playing() or audio.is_paused())):
+        while (not audio is None and (audio.is_playing() or audio.is_paused()) and not stop):
             time.sleep(1)
+            
         if queue.__len__() > 0:
             handle_queue()
 
@@ -175,10 +176,10 @@ async def clear(ctx):
 
 @bot.command(name='queue')
 async def queue_cmd(ctx):
-    msg = '`'
+    msg = '```'
     for i in range(0, queue.__len__()):
         msg += str(i) + '. ' + queue[i][0]['title'] + '\n'
-    msg += '`'
+    msg += '```'
     
     if queue.__len__() == 0:
         msg = '`Empty`'
@@ -199,23 +200,25 @@ async def commands(ctx):
         '>queue: show all items in the queue'
     ]
 
-    msg = '`\n'
+    msg = '```\n'
     for disc in cmd_descriptions:
         msg += disc + '\n'
-    msg += '\n`'
+    msg += '\n```'
 
     await ctx.send(msg)
 
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
-bot_thread = threading.Thread(target=start_bot)
+bot_thread = threading.Thread(target=start_bot, daemon=True)
 queue_thread = threading.Thread(target=check_queue)
+
+bot_thread.start()
+queue_thread.start()
 
 while True:
     usr_cmd = input()
     if usr_cmd == 'END' or stop:
         stop = True
-        bot_thread.join()
         queue_thread.join()
         exit()
