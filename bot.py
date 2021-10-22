@@ -11,6 +11,8 @@ from discord.ext.commands import Bot
 load_dotenv()
 bot = Bot(command_prefix='>')
 
+#TODO: MAKE THE QUEUE A DICTIONARY WITH EACH GUILD AS A KEY.
+# CURRENTLY, THE BOT IS SHARING A QUEUE FOR ALL GUILDS
 queue = []
 audio = None
 stop = False
@@ -94,7 +96,7 @@ async def play(ctx, *args):
         with ydl_info:
             info = ydl_info.extract_info(url, download=False)
     except youtube_dl.utils.DownloadError:
-        await ctx.send('Unsupported URL')
+        await ctx.send('Unsupported URL %s' % url)
         return
 
     queue.append((info,ctx))
