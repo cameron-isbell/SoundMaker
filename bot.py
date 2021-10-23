@@ -138,9 +138,7 @@ async def play(ctx, *args):
     embed.set_footer(text='Song is added to the queue.')
 
     await ctx.send(embed=embed)
-
-    print(ctx.guild.id)
-    print(thrd_dict.__len__())
+    print(ctx.author.id)
 
 #Remove an item at a specific point in the queue
 @bot.command(name='remove', aliases=['rm'])
@@ -249,14 +247,4 @@ async def commands(ctx):
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
-bot_thread = threading.Thread(target=start_bot, daemon=True)
-bot_thread.start()
-
-#Check for user input. END is used to kill the bot
-while True:
-    usr_cmd = input()
-    if usr_cmd == 'END' or stop:
-        stop = True
-        for t in thrd_dict.items():
-            t[1].join()
-        exit()
+start_bot()
