@@ -49,19 +49,20 @@ def check_queue(guild):
     global stop
     global audio_dict
 
-    audio = audio_dict[guild.id]
     while not stop:
+        audio = audio_dict[guild.id]
+        queue = queue_dict[guild.id]
+        
         while (not audio is None and (audio.is_playing() or audio.is_paused()) and not stop):
             time.sleep(1)
         
-        if queue_dict[guild.id].__len__() > 0:
-            info = queue_dict[guild.id].pop(0)
+        if queue.__len__() > 0:
+            info = queue.pop(0)
 
             #extract info from the url, also checks if the url is valid on youtube
             FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             audio_dict[guild.id] = discord.utils.get(bot.voice_clients, guild=guild)
             audio_dict[guild.id].play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
-
 
 #send a message to the console when the bot is ready
 @bot.event
@@ -116,7 +117,8 @@ async def play(ctx, *args):
 
     if not ctx.guild.id in queue_dict.keys():
         queue_dict[ctx.guild.id] = []
-
+    queue_dict[ctx.guild.id].append(info)
+    
     if not ctx.guild.id in audio_dict.keys():
         audio_dict[ctx.guild.id] = None
 
@@ -124,8 +126,6 @@ async def play(ctx, *args):
     if not ctx.guild.id in thrd_dict.keys():
         thrd_dict[ctx.guild.id] = threading.Thread(target=check_queue, args=(ctx.guild,))
         thrd_dict[ctx.guild.id].start()
-
-    queue_dict[ctx.guild.id].append(info)
 
     embed = discord.Embed(
         title=info['title'],
@@ -139,22 +139,27 @@ async def play(ctx, *args):
 
     await ctx.send(embed=embed)
 
+    print(ctx.guild.id)
+    print(thrd_dict.__len__())
+
 #Remove an item at a specific point in the queue
-# @bot.command(name='remove', aliases=['rm'])
-# async def remove(ctx, *args):
-#     idx = int(args[0])
+@bot.command(name='remove', aliases=['rm'])
+async def remove(ctx, *args):
+    idx = int(args[0])
 
-#     if idx == 0:
-#         await ctx.send('Cannot remove item at index 0. Use skip instead.')
-#         return
+    if idx == 0:
+        await ctx.send('Cannot remove item at index 0. Use skip instead.')
+        return
 
-#     #idx-1 since the item currently playing has been already popped from the queue
-#     if idx-1 >= queue.__len__():
-#         await ctx.send('No item in the queue at index %s' % args[0])
-#         return
+    queue = queue_dict[ctx.guild.id]
 
-#     removed = queue.pop(idx-1)
-#     await ctx.send('Successfully removed item %s at index %s.' % (removed[0]['title'], args[0]))
+    #idx-1 since the item currently playing has been already popped from the queue
+    if idx-1 >= queue.__len__():
+        await ctx.send('No item in the queue at index %s' % args[0])
+        return
+
+    removed = queue.pop(idx-1)
+    await ctx.send('Successfully removed item %s at index %s.' % (removed[0]['title'], args[0]))
 
 #pause the music
 @bot.command(name='pause')
@@ -206,6 +211,9 @@ async def clear(ctx):
 
 @bot.command(name='queue')
 async def queue_cmd(ctx):
+    if not ctx.guild.id in queue_dict.keys():
+        queue_dict[ctx.guild.id] = []
+    
     queue = queue_dict[ctx.guild.id]
     msg = '```'
     for i in range(0, queue.__len__()):
