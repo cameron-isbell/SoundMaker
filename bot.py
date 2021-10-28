@@ -103,7 +103,7 @@ async def play(ctx, *args):
 
     #download the data used to play the song
     try:
-        ydl_info = youtube_dl.YoutubeDL({'format':'bestaudio/best', 'noplaylist':'True'})
+        ydl_info = youtube_dl.YoutubeDL({'format':'bestaudio/best', 'noplaylist':'True', 'cachedir' : 'False'})
         with ydl_info:
             info = ydl_info.extract_info(url, download=False)
     except youtube_dl.utils.DownloadError:
@@ -138,8 +138,7 @@ async def play(ctx, *args):
     embed.set_footer(text='Song is added to the queue.')
 
     await ctx.send(embed=embed)
-    print(ctx.author.id)
-
+    
 #Remove an item at a specific point in the queue
 @bot.command(name='remove', aliases=['rm'])
 async def remove(ctx, *args):
