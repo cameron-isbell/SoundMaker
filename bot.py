@@ -9,15 +9,11 @@ import os
 import requests
 import youtube_dl
 import threading
-import time
 from dotenv import load_dotenv
 from discord.ext.commands import Bot
 
 load_dotenv()
 bot = Bot(command_prefix='>')
-
-#TODO: MAKE THE QUEUE A DICTIONARY WITH EACH GUILD AS A KEY.
-# CURRENTLY, THE BOT IS SHARING A QUEUE FOR ALL GUILDS
 
 #a dicionary of queues. one for each guild that the bot is playing in
 queue_dict = {}
@@ -53,13 +49,13 @@ def check_queue(guild):
         audio = audio_dict[guild.id]
         queue = queue_dict[guild.id]
         
-        while (not audio is None and (audio.is_playing() or audio.is_paused()) and not stop):
-            time.sleep(1)
+        if not audio is None and (audio.is_playing() or audio.is_paused):
+            continue
         
         if queue.__len__() > 0:
             info = queue.pop(0)
 
-            #extract info from the url, also checks if the url is valid on youtube
+            #FFMPEG is responsible for actually playing audio. does not download, streams directly from youtube using the link from the queue
             FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             audio_dict[guild.id] = discord.utils.get(bot.voice_clients, guild=guild)
             audio_dict[guild.id].play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
@@ -233,7 +229,8 @@ async def commands(ctx):
         '>leave: make SoundMaker leave the voice channel it is in',
         '>remove: remove a song from the queue at the given index',
         '>clear: remove all items in the queue',
-        '>queue: show all items in the queue'
+        '>queue: show all items in the queue', 
+        'limitations: Cannot seek, cannot play age restricted videos'
     ]
 
     msg = '```\n'
@@ -243,6 +240,8 @@ async def commands(ctx):
 
     await ctx.send(msg)
 
+#"why isn't the bot running on its own thread in the background?" you may be wondering. because the pi that the bot runs on
+#says no no to that. weird bug that makes the only way to kill the bot to ctrl+c it. 
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
