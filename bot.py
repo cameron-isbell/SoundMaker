@@ -9,6 +9,7 @@ import os
 import requests
 import youtube_dl
 import threading
+import time
 from dotenv import load_dotenv
 from discord.ext.commands import Bot
 
@@ -25,21 +26,6 @@ thrd_dict = {}
 audio_dict = {}
 stop = False
 
-#TODO: MAKE SURE OPUS IS ACUTALLY NECESSARY
-OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
-def load_opus(opus_libs=OPUS_LIBS):
-    if opus.is_loaded():
-        return True
-
-    for opus_lib in opus_libs:
-        try:
-            opus.load_opus(opus_lib)
-            return
-        except OSError:
-            pass
-
-        raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
-
 #A thread running to check the queue whenever audio is done playing
 def check_queue(guild):
     global stop
@@ -48,9 +34,9 @@ def check_queue(guild):
     while not stop:
         audio = audio_dict[guild.id]
         queue = queue_dict[guild.id]
-        
-        if not audio is None and (audio.is_playing() or audio.is_paused):
-            continue
+
+        while not audio is None and (audio.is_playing() or audio.is_paused) and not stop:
+            time.sleep(1)
         
         if queue.__len__() > 0:
             info = queue.pop(0)
