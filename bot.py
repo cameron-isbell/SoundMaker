@@ -85,7 +85,8 @@ async def play(ctx, *args):
 
     #download the data used to play the song
     try:
-        ydl_info = youtube_dl.YoutubeDL({'format':'bestaudio/best', 'noplaylist':'True', 'cachedir' : 'False'})
+        #'format':'bestaudio/best', d
+        ydl_info = youtube_dl.YoutubeDL({'format' : 'worstaudio/worst', 'noplaylist':'True', 'cachedir' : 'False'})
         with ydl_info:
             info = ydl_info.extract_info(url, download=False)
     except youtube_dl.utils.DownloadError:
