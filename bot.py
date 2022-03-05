@@ -1,8 +1,8 @@
 #Author: cameron-isbell
-#Date: 9/14/2021
+#Date Created: 9/14/2021
+#Date Last Updated: 3/1/2022
 
 #A discord bot used to play audio with command prefix '>'
-
 from __future__ import unicode_literals
 import discord
 import os
@@ -56,7 +56,14 @@ async def on_ready():
 async def play(ctx, *args):
     global queue
     await ctx.send('Processing Request...')
+    url = ""
     #connect the bot to the vc if possible
+    
+    #Just in case the guild is None for some reason
+    if ctx.guild is None:
+        await ctx.send('Fatal Error: ctx.guild = None. Song could not be played.')
+        return 
+
     try:
         if (not ctx.voice_client):
             chnl = ctx.author.voice.channel
@@ -73,7 +80,6 @@ async def play(ctx, *args):
         await ctx.send('No link given.')
         return        
     
-    url = args[0]
     #check that the url is valid
     try:
         if (requests.get(url).status_code != 200):
@@ -86,22 +92,19 @@ async def play(ctx, *args):
     #download the data used to play the song
     try:
         #'format':'bestaudio/best', d
-        ydl_info = youtube_dl.YoutubeDL({'format' : 'worstaudio/worst', 'noplaylist':'True', 'cachedir' : 'False'})
+        ydl_info = youtube_dl.YoutubeDL({'format' : 'bestaudio/best', 'noplaylist':'True', 'cachedir' : 'False'})
         with ydl_info:
             info = ydl_info.extract_info(url, download=False)
     except youtube_dl.utils.DownloadError:
         await ctx.send('Unsupported URL %s' % url)
         return
 
-    #Just in case the guild is None for some reason
-    if ctx.guild is None:
-        await ctx.send('Fatal Error: ctx.guild = None. Song could not be played.')
-        return 
-
     if not ctx.guild.id in queue_dict.keys():
         queue_dict[ctx.guild.id] = []
+
     queue_dict[ctx.guild.id].append(info)
     
+    #Set a key at this position with no audio playing yet
     if not ctx.guild.id in audio_dict.keys():
         audio_dict[ctx.guild.id] = None
 
@@ -229,6 +232,9 @@ async def commands(ctx):
 
 #"why isn't the bot running on its own thread in the background?" you may be wondering. because the pi that the bot runs on
 #says no no to that. weird bug that makes the only way to kill the bot to ctrl+c it. 
+
+#TODO: BOT WON'T RUN IN CERTAIN SERVERS
+#BOT WILL RANDOMLY GET INCREDIBLY LAGGY
 def start_bot():
     bot.run(os.getenv('TOKEN'))
 
