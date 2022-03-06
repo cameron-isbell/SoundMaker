@@ -74,9 +74,9 @@ async def play(ctx, *args):
         if (not ctx.voice_client):
             chnl = ctx.author.voice.channel
             await chnl.connect()
-        elif (ctx.voice_client != ctx.author.voice.channel):
-            await ctx.voice_client.disconnect()
-            await ctx.author.voice.channel.connect()
+        # elif (ctx.voice_client != ctx.author.voice.channel):
+        #     await ctx.voice_client.disconnect()
+        #     await ctx.author.voice.channel.connect()
             
     except AttributeError:
         await ctx.send('User is not in a voice channel.')
