@@ -71,7 +71,7 @@ async def play(ctx, *args):
         return 
 
     try:
-        if (not ctx.voice_client):
+        if (not ctx.voice_client or ctx.voice_client != ctx.author.voice.channel):
             chnl = ctx.author.voice.channel
             vc = await chnl.connect()
 
