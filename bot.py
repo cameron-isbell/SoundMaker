@@ -17,38 +17,38 @@ load_dotenv()
 bot = Bot(command_prefix='>')
 
 #TODO: GROUP THESE TOGETHER INTO AN OBJECT
-
 #a dicionary of queues. one for each guild that the bot is playing in
 queue_dict = {}
-
-#a dictionary for each thread associated with each guild
-thread_dict = {}
 
 #a dictionary the audio for each guild. 
 audio_dict = {}
 stop = False
 
 #A thread running to check the queue whenever audio is done playing
-def check_queue(guild):
+def check_queue():
     global stop
     global queue_dict
     global audio_dict
 
     while not stop:
-        audio = audio_dict[guild.id]
-        queue = queue_dict[guild.id]
+        for guild_id, audio in audio_dict.items():
+            audio = audio_dict[guild_id]
+            queue = queue_dict[guild_id]
 
-        if (not audio is None and (audio.is_playing() or audio.is_paused())):
-            time.sleep(1)
-            continue
-        
-        if queue.__len__() > 0:
-            info = queue.pop(0)
+            #stop here if audio is playing already in this guild
+            if not audio is None and (audio.is_playing() or audio.is_paused()): 
+                continue
 
-            #FFMPEG is responsible for actually playing audio. does not download, streams directly from youtube using the link from the queue
-            FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-            audio_dict[guild.id] = discord.utils.get(bot.voice_clients, guild=guild)
-            audio_dict[guild.id].play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
+            if queue.__len__() > 0:
+                info = queue_dict[guild_id].pop(0)
+                guild = bot.get_guild(guild_id)
+                
+                #FFMPEG is responsible for actually playing audio. does not download, streams directly from youtube using the link from the queue
+                FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+                audio_dict[guild_id] = discord.utils.get(bot.voice_clients, guild=guild)
+                audio_dict[guild_id].play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
+
+        time.sleep(1)
 
 #send a message to the console when the bot is ready
 @bot.event
@@ -88,6 +88,9 @@ async def play(ctx, *args):
         await ctx.send('No link given.')
         return        
     
+    if (not args[0].startswith('http')):
+        await ctx.send('Needs a link.')
+
     #check that the url is valid
     try:
         if (requests.get(url).status_code != 200):
@@ -114,11 +117,6 @@ async def play(ctx, *args):
     #Set a key at this position with no audio playing yet
     if not ctx.guild.id in audio_dict.keys():
         audio_dict[ctx.guild.id] = None
-
-    #create a new thread for each guild
-    if not ctx.guild.id in thread_dict.keys():
-        thread_dict[ctx.guild.id] = threading.Thread(target=check_queue, args=(ctx.guild,))
-        thread_dict[ctx.guild.id].start()
 
     embed = discord.Embed(
         title=info['title'],
@@ -234,7 +232,7 @@ async def commands(ctx):
         '>remove: remove a song from the queue at the given index',
         '>clear: remove all items in the queue',
         '>queue: show all items in the queue', 
-        'limitations: Cannot seek, cannot play age restricted videos'
+        'limitations: Cannot seek or play age restricted videos. Needs a link to a youtube video'
     ]
 
     msg = '```\n'
@@ -250,6 +248,8 @@ async def commands(ctx):
 #TODO: BOT WON'T RUN IN CERTAIN SERVERS
 #BOT WILL RANDOMLY GET INCREDIBLY LAGGY
 def start_bot():
+    queue_thread = threading.Thread(target=check_queue)
+    queue_thread.start()
     bot.run(os.getenv('TOKEN'))
 
 start_bot()
