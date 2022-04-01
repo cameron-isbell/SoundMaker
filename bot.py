@@ -16,16 +16,8 @@ from discord.ext.commands import Bot
 load_dotenv()
 bot = Bot(command_prefix='>')
 
-#TODO: GROUP THESE TOGETHER INTO AN OBJECT
-
 #a dicionary of queues. one for each guild that the bot is playing in
 queue_dict = {}
-
-#a dictionary for each thread associated with each guild
-thread_dict = {}
-
-#a dictionary the audio for each guild. 
-audio_dict = {}
 stop = False
 
 #A thread running to check the queue whenever audio is done playing
@@ -59,8 +51,6 @@ async def on_ready():
 @bot.command(name='play', aliases=['p'])
 async def play(ctx, *args):
     global queue_dict
-    global audio_dict
-    global thread_dict
     await ctx.send('Processing Request...')
     url = ""
     #connect the bot to the vc if possible
@@ -82,6 +72,7 @@ async def play(ctx, *args):
         await ctx.send('User is not in a voice channel.')
         return
     
+    #make sure that an argument is given
     try:
         url = args[0]
     except IndexError:
@@ -105,6 +96,10 @@ async def play(ctx, *args):
     except youtube_dl.utils.DownloadError:
         await ctx.send('Unsupported URL %s' % url)
         return
+
+    #TODO: add a new guild item to the dictionary at the id
+    if not ctx.guild.id in queue_dict.key():
+        queue_dict[ctx.guild.id].
 
     if not ctx.guild.id in queue_dict.keys():
         queue_dict[ctx.guild.id] = []
