@@ -38,9 +38,9 @@ def check_queue(guild):
             info = queue.pop(0)
 
             #FFMPEG is responsible for actually playing audio. does not download, streams directly from youtube using the link from the queue
-            FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn -preset ultrafast'}
             
-            queue_dict[guild.id].audio =  discord.utils.get(bot.voice_clients, guild=guild)
+            queue_dict[guild.id].audio = discord.utils.get(bot.voice_clients, guild=guild)
             queue_dict[guild.id].audio.play(discord.FFmpegPCMAudio(info['formats'][0]['url'], **FFMPEG_OPTS))
 
 #send a message to the console when the bot is ready
@@ -59,15 +59,12 @@ async def play(ctx, *args):
     #Just in case the guild is None for some reason
     if ctx.guild is None:
         await ctx.send('Fatal Error: ctx.guild = None. Song could not be played.')
-        return 
+        return
 
     try:
         if (not ctx.voice_client):
             chnl = ctx.author.voice.channel
             await chnl.connect()
-        # elif (ctx.voice_client != ctx.author.voice.channel):
-        #     await ctx.voice_client.disconnect()
-        #     await ctx.author.voice.channel.connect()
             
     except AttributeError:
         await ctx.send('User is not in a voice channel.')
@@ -89,19 +86,9 @@ async def play(ctx, *args):
         await ctx.send('Must be a youtube link')
         return
 
-
-    #check that the url is valid
-    # try:
-    #     if (requests.get(url).status_code != 200):
-    #         await ctx.send('Invalid url.')
-    #         return
-    # except requests.exceptions.ConnectionError:
-    #     await ctx.send('Invalid url.')
-    #     return
-
     #download the data used to play the song
     try:
-        ydl_info = youtube_dl.YoutubeDL({'format' : 'bestaudio/best', 'noplaylist':'True', 'cachedir' : 'False'})
+        ydl_info = youtube_dl.YoutubeDL({'format' : 'bestaudio', 'noplaylist':'True', 'cachedir' : 'False'})
         with ydl_info:
             info = ydl_info.extract_info(url, download=False)
     except youtube_dl.utils.DownloadError:
