@@ -2,6 +2,7 @@ const { Client, Collection, GatewayIntentBits, Events } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const config = require("./config.json");
+const test_command = require("./test.js")
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -32,9 +33,9 @@ client.on(Events.InteractionCreate, async interaction => {
     const command = client.commands.get(interaction.commandName);
     if(!command) return;
 
-    if (interaction.commandName == 'test') {
-        await interaction.reply('testing');
-    }
+    // if (interaction.commandName == 'test') {
+    //     await interaction.reply('testing');
+    // }
 
     // try {
     //     await command.execute(interaction);
