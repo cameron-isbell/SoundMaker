@@ -4,6 +4,7 @@ const path = require('node:path');
 const { token, clientId, guildId } = require("./config.json");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+global.client = client;
 
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
