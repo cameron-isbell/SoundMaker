@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@discordjs/voice": "^0.14.0",
+    "discord.js": "^14.7.1",
+    "nvm": "^0.0.4",
+    "ytdl-core": "^4.11.2"
+  }
+}
