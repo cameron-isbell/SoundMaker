@@ -1,7 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { guildId } = require("./../config.json");
-const { joinVoiceChannel } = require('@discordjs/voice');
-const { ytdl } = require('ytdl-core');
+const { joinVoiceChannel, createAudioPlayer } = require('@discordjs/voice');
+const ytdl = require('ytdl-core');
+const ffmpeg = require('ffmpeg.js');
 
 module.exports = 
 {
@@ -42,11 +43,16 @@ module.exports =
             await interaction.reply(`Invalid link '${link}'`)
             return;
         }
-        console.log(link);
-
         interaction.reply('Song successfully received!');
+
         let info = await ytdl.getInfo(link);
+        //const ffmpeg_args = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn -preset ultrafast'};
+
+        const player = createAudioPlayer(ffmpeg({
+            []
+        })); 
+        player.play();
         
-        //connection.playStream(ytdl(link));
-    },
+        //TODO: audio parameter will be ffmpeg stream
+    }, 
 };
