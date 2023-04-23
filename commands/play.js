@@ -32,7 +32,7 @@ module.exports =
 
         //await interaction.reply(`This user is in ${voiceChannel.name}`);
         const connection = joinVoiceChannel ({
-            channelId: voiceChannel.id,
+            channelId: member.voice.channel.id,
             guildId: interaction.guildId,
             adapterCreator: voiceChannel.guild.voiceAdapterCreator,
         });
@@ -46,13 +46,14 @@ module.exports =
         interaction.reply('Song successfully received!');
 
         let info = await ytdl.getInfo(link);
-        //const ffmpeg_args = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn -preset ultrafast'};
-
-        const player = createAudioPlayer(ffmpeg({
-            []
-        })); 
-        player.play();
+        let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
         
-        //TODO: audio parameter will be ffmpeg stream
+        let url = format.url;
+        let stream = ffmpeg({
+            arguments: ["-i", url],
+        });
+        let player = createAudioPlayer(stream);
+        player.play();
+
     }, 
 };
