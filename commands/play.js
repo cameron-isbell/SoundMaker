@@ -2,7 +2,8 @@ const { SlashCommandBuilder } = require('discord.js');
 const { guildId } = require("./../config.json");
 const { joinVoiceChannel, createAudioPlayer } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
-const ffmpeg = require('ffmpeg.js');
+const ffmpeg = require('fluent-ffmpeg');
+let spawn = require('child_process').spawn;
 
 module.exports = 
 {
@@ -49,11 +50,18 @@ module.exports =
         let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
         
         let url = format.url;
-        let stream = ffmpeg({
-            arguments: ["-i", url],
-        });
-        let player = createAudioPlayer(stream);
+
+        let command = ffmpeg(url)
+            .audioCodec('libmp3lame');
+
+        ffstream = command.pipe();
+        //console.log(output);
+        let player = createAudioPlayer(output);
         player.play();
+        //let output = spawn(('ffmpeg -i ' + url));
+        //console.log(output);
+        // let player = createAudioPlayer(stream);
+        // player.play();
 
     }, 
 };
