@@ -5,6 +5,6 @@
     "ffmpeg.js": "^4.2.9003",
     "fluent-ffmpeg": "^2.1.2",
     "nvm": "^0.0.4",
-    "ytdl-core": "^4.11.3"
+    "ytdl-core": "^4.11.4"
   }
 }

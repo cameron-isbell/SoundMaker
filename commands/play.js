@@ -1,9 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { guildId } = require("./../config.json");
-const { joinVoiceChannel, createAudioPlayer } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
-let spawn = require('child_process').spawn;
 
 module.exports = 
 {
@@ -47,21 +45,21 @@ module.exports =
         interaction.reply('Song successfully received!');
 
         let info = await ytdl.getInfo(link);
-        let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
-        
-        let url = format.url;
+        console.log(info);
 
-        let command = ffmpeg(url)
-            .audioCodec('libmp3lame');
+    //     let info = await ytdl.getInfo(link);
 
-        ffstream = command.pipe();
-        //console.log(output);
-        let player = createAudioPlayer(output);
-        player.play();
-        //let output = spawn(('ffmpeg -i ' + url));
-        //console.log(output);
-        // let player = createAudioPlayer(stream);
-        // player.play();
+    //     console.log(info);
 
+    //     let formats = ytdl.filterFormats(info.formats, 'audioonly');
+
+    //    // let format = ytdl.chooseFormat()
+
+    //     let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
+
+    //     console.log(format);
+
+    //     const resource = createAudioResource(format.url);
+    //     player.play(resource);
     }, 
 };
