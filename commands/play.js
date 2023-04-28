@@ -3,6 +3,7 @@ const { guildId } = require("./../config.json");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 
+
 module.exports = 
 {
     data : new SlashCommandBuilder()
@@ -45,21 +46,15 @@ module.exports =
         interaction.reply('Song successfully received!');
 
         let info = await ytdl.getInfo(link);
-        console.log(info);
+        let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
+        console.log(member.voice.channel.id);
+        const resource = createAudioResource(format.url);
 
-    //     let info = await ytdl.getInfo(link);
-
-    //     console.log(info);
-
-    //     let formats = ytdl.filterFormats(info.formats, 'audioonly');
-
-    //    // let format = ytdl.chooseFormat()
-
-    //     let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
-
-    //     console.log(format);
-
-    //     const resource = createAudioResource(format.url);
-    //     player.play(resource);
+        player = createAudioPlayer();
+        player.play(resource);
+        
+        player.on('error', error => {
+            console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
+        });
     }, 
 };
