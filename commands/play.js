@@ -49,17 +49,15 @@ module.exports =
             adapterCreator: interaction.guild.voiceAdapterCreator,
         });
         
-        const filename = join(__dirname, 'test.mp3');
+        const filename = join(__dirname, 'fire.mp3');
 
         ffmpeg(filename)
-        //.setFfmpegPath("C:\\ffmpeg\\bin\\ffmpeg.exe")
         .toFormat('opus')
         .audioCodec('libopus')
         .on('error', (err) => {
             console.log('An error occurred: ' + err.message);
         })
         .on('progress', (progress) => {
-            // console.log(JSON.stringify(progress));
             console.log('Processing: ' + progress.targetSize + ' KB converted');
         })
         .on('end', () => {
@@ -67,14 +65,13 @@ module.exports =
         })
         .save('./output.opus');//path where you want to save your file
         
-        const testconnection = getVoiceConnection(interaction.guildId);
+        //const testconnection = getVoiceConnection(interaction.guildId);
 
         const player = createAudioPlayer();
         const outputpath = join(__dirname, 'output.opus');
         let resource = createAudioResource(outputpath);
 
-        console.log(outputpath);
-        testconnection.subscribe(player);
+        connection.subscribe(player);
         player.play(resource);
 
     }, 
