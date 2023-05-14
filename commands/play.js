@@ -1,8 +1,15 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { guildId } = require("./../config.json");
-const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
+const { join } = require('node:path');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, getVoiceConnection } = require('@discordjs/voice');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
+ffmpeg.setFfmpegPath(ffmpegPath)
+
 const ytdl = require('ytdl-core');
 
+const { create } = require('node:domain');
+const output = require('fluent-ffmpeg/lib/options/output');
 
 module.exports = 
 {
@@ -16,45 +23,59 @@ module.exports =
 
     async execute(interaction) 
     {
-        const link = interaction.options.getString('link');
-        //const guild = client.guilds.cache.get(interaction.guildId);
-        guild = interaction.guild;
-        if (guild == null || !guild.available)
+        if (interaction.guild == null || !interaction.guild.available)
         {
-            console.log(`[ERROR] guild ${interaction.guildId} is not available`);
+            console.log(`[ERROR] guild ${interaction.guild.id} is not available`);
             await interaction.reply(`ERROR: Guild is not defined`);
             return;
         }
+        const link = interaction.options.getString('link');
 
-        //join the voice channel
-        const member = interaction.guild.members.cache.get(interaction.member.user.id);
-        const voiceChannel = member.voice.channel;
-
-        //await interaction.reply(`This user is in ${voiceChannel.name}`);
-        const connection = joinVoiceChannel ({
-            channelId: member.voice.channel.id,
-            guildId: interaction.guildId,
-            adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-        });
-        
-        //check link valid
+        //handle invalid links
         if ( !( (link != null) && (link.startsWith('https://www.youtube.com') || link.startsWith('www.youtube.com') ) ) )
         {
             await interaction.reply(`Invalid link '${link}'`)
             return;
         }
-        interaction.reply('Song successfully received!');
+        await interaction.reply('Song successfully received!');
 
-        let info = await ytdl.getInfo(link);
-        let format = ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), { audioQuality: 'AUDIO_QUALITY_MEDIUM'});
-        console.log(member.voice.channel.id);
-        const resource = createAudioResource(format.url);
+        //join the voice channel
+        const member = interaction.guild.members.cache.get(interaction.member.user.id);
+        const voiceChannel = member.voice.channel;
 
-        player = createAudioPlayer();
-        player.play(resource);
-        
-        player.on('error', error => {
-            console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
+        const connection = joinVoiceChannel ({
+            channelId: member.voice.channelId,
+            guildId: interaction.guildId,
+            adapterCreator: interaction.guild.voiceAdapterCreator,
         });
+        
+        const filename = join(__dirname, 'test.mp3');
+
+        ffmpeg(filename)
+        //.setFfmpegPath("C:\\ffmpeg\\bin\\ffmpeg.exe")
+        .toFormat('opus')
+        .audioCodec('libopus')
+        .on('error', (err) => {
+            console.log('An error occurred: ' + err.message);
+        })
+        .on('progress', (progress) => {
+            // console.log(JSON.stringify(progress));
+            console.log('Processing: ' + progress.targetSize + ' KB converted');
+        })
+        .on('end', () => {
+            console.log('Processing finished !');
+        })
+        .save('./output.opus');//path where you want to save your file
+        
+        const testconnection = getVoiceConnection(interaction.guildId);
+
+        const player = createAudioPlayer();
+        const outputpath = join(__dirname, 'output.opus');
+        let resource = createAudioResource(outputpath);
+
+        console.log(outputpath);
+        testconnection.subscribe(player);
+        player.play(resource);
+
     }, 
 };

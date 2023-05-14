@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { token, clientId, guildId } = require("./config.json");
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 global.client = client;
 
 const eventsPath = path.join(__dirname, 'events');
