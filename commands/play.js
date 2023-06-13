@@ -24,6 +24,7 @@ module.exports =
 
     async execute(interaction) 
     {
+        console.log('EXECUTING PLAY.JS');
         if (interaction.guild == null || !interaction.guild.available)
         {
             console.log(`[ERROR] guild ${interaction.guild.id} is not available`);
@@ -44,14 +45,17 @@ module.exports =
         const member = interaction.guild.members.cache.get(interaction.member.user.id);
         const voiceChannel = member.voice.channel;
 
-        const connection = joinVoiceChannel ({
-            channelId: member.voice.channelId,
-            guildId: interaction.guildId,
-            adapterCreator: interaction.guild.voiceAdapterCreator,
-        });
+        if (global.connection === null) 
+        {
+            global.connection = joinVoiceChannel ({
+                channelId: member.voice.channelId,
+                guildId: interaction.guildId,
+                adapterCreator: interaction.guild.voiceAdapterCreator,
+            });
+        }
 
         const player = createAudioPlayer();
-        connection.subscribe(player);
+        global.connection.subscribe(player);
 
         let info = await ytdl.getInfo(link);
         let formats = ytdl.filterFormats(info.formats, 'audioonly');
@@ -59,6 +63,6 @@ module.exports =
 
         let resource = createAudioResource(format.url);
 
-        player.play(resource);
+        player.play(resource); 
     }, 
 };
