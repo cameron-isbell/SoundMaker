@@ -6,6 +6,9 @@ const { token, clientId, guildId } = require("./config.json");
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 global.client = client;
 global.connection = null;
+global.queue = [];
+global.currentlyPlaying = null;
+global.player = null;
 
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
