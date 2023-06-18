@@ -47,7 +47,7 @@ module.exports =
 
         while (global.queue.length > 0)
         {
-            let info = global.queue[0];
+            let info = global.queue.pop(0);
             let resource = createAudioResource(ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), {audioCodec : 'opus', quality : 'highest'}).url);
             
             global.player.play(resource);
