@@ -1,9 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { guildId } = require("./../config.json");
-const { joinVoiceChannel, createAudioResource } = require('@discordjs/voice');
-const { queue } = require('async');
 const ytdl = require('ytdl-core-discord');
-
+const queue_handler = require('../common/queue_handler.js');
 
 module.exports = 
 {
@@ -26,17 +23,17 @@ module.exports =
         const link = interaction.options.getString('link');
 
         //handle invalid links
-        if ( !( (link != null) && (link.startsWith('https://www.youtube.com') || link.startsWith('www.youtube.com') ) ) )
+        if ( (link == null) || (!(link.startsWith('https://www.youtube.com')) && !(link.startsWith('www.youtube.com')) ))
         {
-            await interaction.reply(`Invalid link '${link}'`)
+            await interaction.reply(`Invalid link '${link}'`);
             return;
         }
 
+        //Defer reply while ytdl thinks
+        await interaction.deferReply();
         let info = await ytdl.getInfo(link);
-        let formats = ytdl.filterFormats(info.formats, 'audioonly');
-        let format = ytdl.chooseFormat(formats, {audioCodec : 'opus', quality : 'highest'})
+        await queue_handler.pushNewSong(info);
 
-        global.queue.push(info);
-        await interaction.reply('Song successfully added!');
+        await interaction.editReply('Song successfully added!');
     },
 };

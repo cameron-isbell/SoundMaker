@@ -1,12 +1,10 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { guildId } = require("./../config.json");
 
 module.exports = 
 {
     data : new SlashCommandBuilder()
         .setName('stop')
         .setDescription(`Stop playing the current song`),
-
 
     async execute(interaction) 
     {

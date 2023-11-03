@@ -6,7 +6,6 @@ const { token, clientId, guildId } = require("./config.json");
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 global.client = client;
 global.connection = null;
-global.queue = [];
 global.currentlyPlaying = null;
 global.player = null;
 
