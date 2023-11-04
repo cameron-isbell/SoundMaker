@@ -57,13 +57,15 @@ module.exports =
         global.player = createAudioPlayer();
         global.connection.subscribe(global.player);
 
-        while (queue_handler.queueLen() > 0)
+        
+        while (await queue_handler.queueLen() > 0)
         {
             if (global.player.state != AudioPlayerStatus.Playing)
             {
                 let info = await queue_handler.popNextSong();
                 let resource = createAudioResource(ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), {audioCodec : 'opus', quality : 'highest'}).url);
                 global.player.play(resource);
+                console.log(global.player.state);
             }
 
             global.connection.on('stateChange', (oldState, newState) => {

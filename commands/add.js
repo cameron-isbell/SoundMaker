@@ -31,9 +31,8 @@ module.exports =
 
         //Defer reply while ytdl thinks
         await interaction.deferReply();
-        let info = await ytdl.getInfo(link);
+        let info = await ytdl.getBasicInfo(link);
         await queue_handler.pushNewSong(info);
-
-        await interaction.editReply('Song successfully added!');
+        await interaction.editReply(`Added "${info.videoDetails.title}" to queue!`);
     },
 };

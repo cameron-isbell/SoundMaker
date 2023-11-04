@@ -18,7 +18,7 @@ module.exports = {
 
             if (queueLen == 0)
             {
-                await interaction.reply('Empty');
+                await interaction.reply('Queue is empty!');
             }
             else 
             {

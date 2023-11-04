@@ -20,7 +20,8 @@ module.exports =
             await interaction.reply('No song is currently playing');
             return;
         }
+
         global.player.stop();
-        global.player = null;
+        interaction.reply('Stopped playing');
     },
 };
