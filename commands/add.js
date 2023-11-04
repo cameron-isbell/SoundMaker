@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const ytdl = require('ytdl-core-discord');
+const ytdl = require('ytdl-core');
 const queue_handler = require('../common/queue_handler.js');
 
 module.exports = 
@@ -33,6 +33,8 @@ module.exports =
         await interaction.deferReply();
         let info = await ytdl.getBasicInfo(link);
         await queue_handler.pushNewSong(info);
+        console.log(info.videoDetails.title);
+
         await interaction.editReply(`Added "${info.videoDetails.title}" to queue!`);
     },
 };

@@ -1,8 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { join } = require('node:path');
+const ytdl = require('ytdl-core');
 const queue_handler = require('../common/queue_handler.js');
 
-const fs = require('fs');
 const { 
     joinVoiceChannel, 
     createAudioPlayer, 
@@ -10,9 +9,6 @@ const {
     VoiceConnection, 
     VoiceConnectionStatus,
     AudioPlayerStatus } = require('@discordjs/voice');
-
-const ytdl = require('ytdl-core-discord');
-const { queue } = require('async');
 
 function delay(ms) {
     return new Promise(resolve=>setTimeout(resolve, ms));
@@ -57,24 +53,24 @@ module.exports =
         global.player = createAudioPlayer();
         global.connection.subscribe(global.player);
 
-        
         while (await queue_handler.queueLen() > 0)
         {
-            if (global.player.state != AudioPlayerStatus.Playing)
+            if (global.player.state.status == AudioPlayerStatus.Idle)
             {
                 let info = await queue_handler.popNextSong();
                 let resource = createAudioResource(ytdl.chooseFormat(ytdl.filterFormats(info.formats, 'audioonly'), {audioCodec : 'opus', quality : 'highest'}).url);
                 global.player.play(resource);
-                console.log(global.player.state);
             }
-
-            global.connection.on('stateChange', (oldState, newState) => {
-                if(oldState.status === VoiceConnectionStatus.Ready && newState.status === VoiceConnectionStatus.Connecting)
-                {
-                    global.connection.configureNetworking();
-                }
-            }); 
-
+            else if (global.player.state.status == AudioPlayerStatus.Playing)
+            {
+                global.connection.on('stateChange', (oldState, newState) => {
+                    if (oldState.status === VoiceConnectionStatus.Ready && newState.status === VoiceConnectionStatus.Connecting)
+                    {
+                        global.connection.configureNetworking();
+                    }
+                }); 
+            }
+            
             await delay(1000);
         }
     }, 
